@@ -1,3 +1,6 @@
+# Example mounting local dev into a container:
+# -v $(shell pwd)/../nvim-coverage:/root/.local/share/nvim/site/pack/packer/start/nvim-coverage/
+
 .PHONY: test clean
 test: python-test go-test typescript-test ruby-test
 	@nvim --headless -c "PlenaryBustedDirectory ./unit"
@@ -18,21 +21,21 @@ NVIM_PYTHON_IMAGE:=nvim-coverage-python:3.10
 
 languages/python/.coverage:
 	@(docker run --rm -v $(shell pwd):/test ${PYTHON_IMAGE} \
-		bash -c "cd /test/languages/python && pipenv install && pipenv run pytest --cov")
+		bash /test/languages/python/generate.sh)
 
 .PHONY: python-coverage python-clean python-image python-test
 python-coverage: languages/python/.coverage
 
 python-clean:
 	@(cd languages/python && \
-		rm -rf .pytest_cache .coverage)
+		rm -rf .pytest_cache .coverage .coverage_no_branch)
 
 python-image:
 	@(docker build --build-arg BASE_IMAGE=${PYTHON_IMAGE} -t ${NVIM_PYTHON_IMAGE} .)
 
 python-test: python-coverage python-image
 	@(docker run --rm -v $(shell pwd):/test ${NVIM_PYTHON_IMAGE} \
-		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/python_spec.lua'")
+		bash -c "cd /test && nvim --headless -c 'PlenaryBustedFile languages/python_spec.lua'")
 
 ## Go
 GO_IMAGE:=mcr.microsoft.com/devcontainers/go:0-1.19-bullseye
