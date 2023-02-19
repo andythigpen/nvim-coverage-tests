@@ -1,5 +1,10 @@
-# Example mounting local dev into a container:
-# -v $(shell pwd)/../nvim-coverage:/root/.local/share/nvim/site/pack/packer/start/nvim-coverage/
+# Set DEV=1 to mount the local ../nvim-coverage path into the container during development
+
+ifeq ($(DEV),1)
+	DEV_VOLUME=-v $(shell pwd)/../nvim-coverage:/root/.local/share/nvim/site/pack/packer/start/nvim-coverage/
+else
+	DEV_VOLUME=
+endif
 
 .PHONY: test clean
 test: python-test go-test typescript-test ruby-test
@@ -34,7 +39,7 @@ python-image:
 	@(docker build --build-arg BASE_IMAGE=${PYTHON_IMAGE} -t ${NVIM_PYTHON_IMAGE} .)
 
 python-test: python-coverage python-image
-	@(docker run --rm -v $(shell pwd):/test ${NVIM_PYTHON_IMAGE} \
+	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_PYTHON_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'PlenaryBustedFile languages/python_spec.lua'")
 
 ## Go
@@ -52,7 +57,7 @@ go-clean:
 		rm -f coverage.out)
 
 go-test: go-coverage base-image
-	@(docker run --rm -v $(shell pwd):/test ${NVIM_BASE_IMAGE} \
+	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_BASE_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/go_spec.lua'")
 
 
@@ -71,7 +76,7 @@ typescript-clean:
 		rm -rf node_modules coverage)
 
 typescript-test: typescript-coverage base-image
-	@(docker run --rm -v $(shell pwd):/test ${NVIM_BASE_IMAGE} \
+	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_BASE_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/typescript_spec.lua'")
 
 
@@ -94,5 +99,5 @@ ruby-image:
 	@(docker build --build-arg BASE_IMAGE=${RUBY_IMAGE} -t ${NVIM_RUBY_IMAGE} .)
 
 ruby-test: ruby-coverage ruby-image
-	@(docker run --rm -v $(shell pwd):/test ${NVIM_RUBY_IMAGE} \
+	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_RUBY_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/ruby_spec.lua'")
