@@ -7,7 +7,7 @@ else
 endif
 
 .PHONY: test clean
-test: python-test go-test typescript-test ruby-test
+test: python-test go-test typescript-test ruby-test cpp-test
 	@nvim --headless -c "PlenaryBustedDirectory ./unit"
 
 clean: python-clean go-clean typescript-clean ruby-clean
@@ -88,7 +88,7 @@ languages/ruby/coverage/coverage.json:
 	@(docker run --rm -v $(shell pwd):/test ${RUBY_IMAGE} \
 		bash -c "cd /test/languages/ruby && bundle install && bundle exec rspec")
 
-.PHONY: ruby-coverage ruby-clean
+.PHONY: ruby-coverage ruby-clean ruby-image ruby-test
 ruby-coverage: languages/ruby/coverage/coverage.json
 
 ruby-clean:
@@ -101,3 +101,28 @@ ruby-image:
 ruby-test: ruby-coverage ruby-image
 	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_RUBY_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/ruby_spec.lua'")
+
+
+## C++
+CPP_IMAGE:=mcr.microsoft.com/devcontainers/cpp:debian-11
+NVIM_CPP_IMAGE:=nvim-coverage-cpp:debian-11
+
+languages/cpp/report.info:
+	@(docker run --rm -v $(shell pwd):/test ${NVIM_CPP_IMAGE} \
+		bash -c "cd /test/languages/cpp && cmake . && make && make test && lcov --base-directory . --directory . -c -o report.info")
+
+.PHONY: cpp-coverage cpp-clean cpp-image cpp-test
+cpp-coverage: languages/cpp/report.info
+
+cpp-clean:
+	@(docker run --rm -v $(shell pwd):/test ${CPP_IMAGE} \
+		bash -c "cd /test/languages/cpp && make clean")
+	@(cd languages/cpp && \
+		rm -rf report.info)
+
+cpp-image:
+	@(docker build --build-arg BASE_IMAGE=${CPP_IMAGE} -t ${NVIM_CPP_IMAGE} .)
+
+cpp-test: cpp-coverage cpp-image
+	(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_CPP_IMAGE} \
+		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/cpp_spec.lua'")

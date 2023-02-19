@@ -1,0 +1,13 @@
+CMakeFiles/
+CMakeCache.txt
+*.cmake
+Makefile
+*.tcl
+compile_commands.json
+_deps/
+Testing/
+*.a
+*.o
+*.gcov
+*.info
+tests/exampleTests

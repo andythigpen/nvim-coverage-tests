@@ -1,5 +1,5 @@
 #pragma once
 
-int firstMethod(int p);
+#include <string>
 
-int secondMethod(int p);
+std::string fizzbuzz(int num);

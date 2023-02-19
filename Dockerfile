@@ -3,7 +3,7 @@ FROM ${BASE_IMAGE}
 
 ENV PIPENV_VENV_IN_PROJECT=True
 
-RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl git lcov && rm -rf /var/lib/apt/lists/*
 RUN curl -L -o nvim-linux64.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.tar.gz && \
     tar xzvf nvim-linux64.tar.gz -C /usr/local --strip-components=1 && \
     rm -f nvim-linux64.tar.gz
