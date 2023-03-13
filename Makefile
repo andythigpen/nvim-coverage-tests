@@ -7,10 +7,10 @@ else
 endif
 
 .PHONY: test clean
-test: python-test go-test typescript-test ruby-test cpp-test
+test: python-test go-test typescript-test ruby-test cpp-test php-test
 	@nvim --headless -c "PlenaryBustedDirectory ./unit"
 
-clean: python-clean go-clean typescript-clean ruby-clean
+clean: python-clean go-clean typescript-clean ruby-clean php-clean
 
 ## Base image
 NVIM_BASE_IMAGE:=nvim-coverage-base:test
@@ -126,3 +126,21 @@ cpp-image:
 cpp-test: cpp-coverage cpp-image
 	(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_CPP_IMAGE} \
 		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/cpp_spec.lua'")
+
+## PHP
+PHP_IMAGE:=mcr.microsoft.com/devcontainers/php:8
+
+languages/php/coverage/cobertura.xml:
+	@(docker run --rm -v $(shell pwd)/languages/php:/var/www/html -e XDEBUG_MODE=coverage ${PHP_IMAGE} \
+		bash -c "cd /var/www/html && composer install && vendor/bin/phpunit --coverage-cobertura coverage/cobertura.xml --path-coverage tests/")
+
+.PHONY: php-coverage php-clean php-test
+php-coverage: languages/php/coverage/cobertura.xml
+
+php-clean:
+	@(docker run --rm -v $(shell pwd)/languages/php:/var/www/html ${PHP_IMAGE} \
+		bash -c "rm -rf vendor coverage .phpunit.cache")
+
+php-test: php-coverage base-image
+	@(docker run --rm -v $(shell pwd):/test $(DEV_VOLUME) ${NVIM_BASE_IMAGE} \
+		bash -c "cd /test && nvim --headless -c 'lua require\"coverage\".setup()' -c 'PlenaryBustedFile languages/php_spec.lua'")
